@@ -1,0 +1,57 @@
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+// Servicio de operaciones
+interface SecureService {
+    void processData();
+}
+
+// Servicio
+class SecureServiceImpl implements SecureService {
+    public void processData() {
+        System.out.println("Procesando datos confidenciales...");
+    }
+}
+
+// Proxy para validar autenticación antes de ejecutar el método
+class AuthProxyHandler implements InvocationHandler {
+    private Object target;
+    private boolean isAuthenticated;
+
+    public AuthProxyHandler(Object target, boolean isAuthenticated) {
+        this.target = target;
+        this.isAuthenticated = isAuthenticated;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (!isAuthenticated) {
+            System.out.println("Acceso denegado: El usuario no esta autenticado.");
+            return null;
+        }
+        System.out.println("Acceso concedido: Ejecutando " + method.getName());
+        return method.invoke(target, args);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // Simulamos usuario autenticado o no
+        boolean userIsAuthenticated = true; // TRUE / FALSE
+
+        // Instancia real del servicio
+        SecureService realService = new SecureServiceImpl();
+
+        // Proxy que valida la autenticación
+        SecureService secureProxy = (SecureService) Proxy.newProxyInstance(
+            SecureService.class.getClassLoader(),
+            new Class[]{SecureService.class},
+            new AuthProxyHandler(realService, userIsAuthenticated)
+        );
+
+        // Ejecucion del método a través del Proxy
+        secureProxy.processData();
+    }
+}
+
